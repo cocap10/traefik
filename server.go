@@ -221,19 +221,18 @@ func (server *Server) listenSignals() {
 }
 
 // creates a TLS config that allows terminating HTTPS for multiple domains using SNI
-func (server *Server) createTLSConfig(tlsOption *TLS) (*tls.Config, error) {
+func (server *Server) createTLSConfig(tlsOption *TLS, router *mux.Router) (*tls.Config, error) {
 	if tlsOption == nil {
 		return nil, nil
+	}
+	if tlsOption.ACME != nil {
+		return tlsOption.ACME.createACMEConfig(tlsOption.ACME, router)
 	}
 	if len(tlsOption.Certificates) == 0 {
 		return nil, nil
 	}
 
 	config := &tls.Config{}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"http/1.1"}
-	}
-
 	var err error
 	config.Certificates = make([]tls.Certificate, len(tlsOption.Certificates))
 	for i, v := range tlsOption.Certificates {
@@ -251,13 +250,11 @@ func (server *Server) createTLSConfig(tlsOption *TLS) (*tls.Config, error) {
 func (server *Server) startServer(srv *manners.GracefulServer, globalConfiguration GlobalConfiguration) {
 	log.Info("Starting server on ", srv.Addr)
 	if srv.TLSConfig != nil {
-		err := srv.ListenAndServeTLSWithConfig(srv.TLSConfig)
-		if err != nil {
+		if err := srv.ListenAndServeTLSWithConfig(srv.TLSConfig); err != nil {
 			log.Fatal("Error creating server: ", err)
 		}
 	} else {
-		err := srv.ListenAndServe()
-		if err != nil {
+		if err := srv.ListenAndServe(); err != nil {
 			log.Fatal("Error creating server: ", err)
 		}
 	}
@@ -272,7 +269,7 @@ func (server *Server) prepareServer(router *mux.Router, entryPoint *EntryPoint, 
 		negroni.Use(middleware)
 	}
 	negroni.UseHandler(router)
-	tlsConfig, err := server.createTLSConfig(entryPoint.TLS)
+	tlsConfig, err := server.createTLSConfig(entryPoint.TLS, router)
 	if err != nil {
 		log.Fatalf("Error creating TLS config %s", err)
 		return nil, err

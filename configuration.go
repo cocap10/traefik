@@ -138,6 +138,17 @@ type Redirect struct {
 // TLS configures TLS for an entry point
 type TLS struct {
 	Certificates Certificates
+	ACME         *ACME
+}
+
+// ACME allows to connect to lets encrypt and retrieve certs
+type ACME struct {
+	Email       string
+	Domains     []string
+	StorageFile string
+	OnDemand    bool
+	HTTPAddress string
+	CAServer    string
 }
 
 // Certificates defines traefik certificates type
@@ -244,6 +255,7 @@ func LoadConfiguration() *GlobalConfiguration {
 		viper.Set("boltdb", arguments.Boltdb)
 	}
 	if err := unmarshal(&configuration); err != nil {
+
 		fmtlog.Fatalf("Error reading file: %s", err)
 	}
 
