@@ -22,7 +22,7 @@ const (
 // Kubernetes holds configurations of the Kubernetes provider.
 type Kubernetes struct {
 	BaseProvider `mapstructure:",squash"`
-	Endpoint     string
+	Endpoint     string `description:"Kubernetes server endpoint"`
 }
 
 func (provider *Kubernetes) createClient() (k8s.Client, error) {
